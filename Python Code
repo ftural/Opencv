@@ -1,0 +1,83 @@
+import numpy as np
+import cv2
+
+# load the image
+
+image = cv2.imread("image1.jpeg") #image name
+hsv = cv2.cvtColor(image,cv2.COLOR_BGR2HSV)
+
+#In HSV mode the range of color only greeen and red
+lower = np.array([61,150,150], dtype=np.uint8)
+upper = np.array([200,255,255], dtype=np.uint8)
+
+# masking from the other color
+
+mask = cv2.inRange(hsv, lower, upper)
+output = cv2.bitwise_and(image, image , mask = mask)
+
+# show the images for the first stage
+cv2.imshow("images",output)
+
+
+#this function is sorting the contours from top the bottom
+def sort_contours(cnts, method="top-to-bottom"):
+
+	boundingBoxes = [cv2.boundingRect(c) for c in cnts]
+	(cnts, boundingBoxes) = zip(*sorted(zip(cnts, boundingBoxes),
+		key=lambda b:b[1][1])) #if you want the sorting from left to right or bottom to top or vice versa add if statement and change b:b[1][i]
+ 
+	# return the list of sorted contours and bounding boxes
+	return (cnts, boundingBoxes)
+  #writing the number on to contours
+def draw_contour(image, c, i):
+	# compute the center of the contour area and draw a circle
+	# representing the center
+	M = cv2.moments(c)
+	cX = int(M["m10"] / M["m00"])
+	cY = int(M["m01"] / M["m00"])
+ 
+	# draw the countour number on the image
+	cv2.putText(image, "#{}".format(i + 1), (cX - 20, cY), cv2.FONT_HERSHEY_SIMPLEX,
+		1.0, (255, 255, 255), 2)
+ 
+	# return the image with the contour number drawn on it
+	return image
+
+# load the image and initialize the accumulated edge image
+ 
+accumEdged = np.zeros(output.shape[:2], dtype="uint8")
+ 
+# loop over the blue, green, and red channels, respectively
+for chan in cv2.split(output):
+	# blur the channel, extract edges from it, and accumulate the set
+	# of edges for the image
+	chan = cv2.medianBlur(chan, 11)
+	edged = cv2.Canny(chan, 50, 200)
+	accumEdged = cv2.bitwise_or(accumEdged, edged)
+ 
+# show the accumulated edge map
+cv2.imshow("Edge Map", accumEdged)
+
+# find contours in the accumulated image
+output,cnts,hierarchy = cv2.findContours(accumEdged.copy(), cv2.RETR_EXTERNAL,
+	cv2.CHAIN_APPROX_SIMPLE)
+cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:8]  ##number of contour on the image
+orig = image.copy()
+ 
+# loop over the (unsorted) contours and draw them
+for (i, c) in enumerate(cnts):
+	orig = draw_contour(orig, c, i)
+ 
+# show the original, unsorted contour image
+cv2.imshow("Unsorted", orig)
+ 
+# sort the contours according to the provided method
+(cnts, boundingBoxes) = sort_contours(cnts, method="top-to-bottom")
+ 
+# loop over the (now sorted) contours and draw them
+for (i, c) in enumerate(cnts):
+	draw_contour(output, c, i)
+ 
+# show the output image
+cv2.imshow("Sorted", output)
+cv2.waitKey(0)
