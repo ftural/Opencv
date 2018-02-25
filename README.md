@@ -1,7 +1,7 @@
 # Opencv 
 This code is running at OpenCv 3.4.x and Python 3.6.x
 <br/>
- **Sorting contours with Opencv 3.4.x and Python 3.6.x at an image**
+ **Sorting contours with Opencv and Python at an image**
 
 There are some images from the output
 
